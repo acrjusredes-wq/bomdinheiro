@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Contract from './Contract';
 import { SavedProposal } from '../types';
 import { formatCurrency, numberToWords } from '../utils/formatters';
@@ -53,27 +53,45 @@ const AdminArea: React.FC<AdminAreaProps> = ({ proposals: localProposals, onBack
   };
 
   const downloadTxtContract = (data: SavedProposal) => {
+    const divider = "------------------------------------------------------------";
     const text = `
 INSTRUMENTO PARTICULAR DE CONFISSÃO DE DÍVIDA E TERMO DE ACORDO
 
-CREDOR: KENNETH DEUBER ALMEIDA DE AMORIM, OAB/AL 18.523, CPF 045.556.404-38.
-DEVEDOR: ${data.nome}
+CREDOR: KENNETH DEUBER ALMEIDA DE AMORIM, OAB/AL 18.523.
+DEVEDOR: ${data.nome.toUpperCase()}
 CPF: ${data.cpf}
+DATA: ${new Date(data.submittedAt).toLocaleDateString('pt-BR')}
 
-VALOR TOTAL: ${formatCurrency(data.totalAmount)} (${numberToWords(data.totalAmount)})
+${divider}
+CONFISSÃO DE VALORES
+${divider}
+
+VALOR DO CRÉDITO: ${formatCurrency(data.amount)}
+TOTAL A PAGAR (COM JUROS): ${formatCurrency(data.totalAmount)}
+EXTENSO: ${numberToWords(data.totalAmount).toUpperCase()}
+
 PAGAMENTO: ${data.installments} parcelas de ${formatCurrency(data.installmentValue)}
 
-VENCIMENTOS:
-${data.installmentDates.map((d, i) => `Parcela ${i+1}: ${d}`).join('\n')}
+CRONOGRAMA DE VENCIMENTOS:
+${data.installmentDates.map((d, i) => `Parcela ${i+1}: Vencimento em ${d}`).join('\n')}
 
+${divider}
+INFORMAÇÕES ADICIONAIS
+${divider}
+PIX PARA DEPÓSITO DO CLIENTE: ${data.pix}
+ENDEREÇO: ${data.rua}, ${data.numero}, ${data.bairro}, ${data.cidade}-${data.estado}
+
+Este documento digital possui validade jurídica como título executivo extrajudicial.
 Maceió-AL, ${new Date(data.submittedAt).toLocaleDateString('pt-BR')}
     `;
-    const blob = new Blob([text], { type: 'text/plain' });
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Contrato_Afactoring_${data.id}_${data.nome.replace(/\s+/g, '_')}.txt`;
+    a.download = `CONTRATO_AFACTORING_${data.cpf.replace(/\D/g, '')}.txt`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
@@ -87,8 +105,8 @@ Maceió-AL, ${new Date(data.submittedAt).toLocaleDateString('pt-BR')}
             <div className="w-20 h-20 bg-fintech-dark text-white rounded-3xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-xl">
               <span className="italic font-black">Af</span>
             </div>
-            <h2 className="text-2xl font-black text-slate-900">Painel do Dr. Kenneth</h2>
-            <p className="text-slate-500 text-sm mt-2 font-medium tracking-tight uppercase">Gestão de Títulos Executivos</p>
+            <h2 className="text-2xl font-black text-slate-900">Painel Administrativo</h2>
+            <p className="text-slate-500 text-sm mt-2 font-medium tracking-tight uppercase">Dr. Kenneth Amorim</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -112,10 +130,10 @@ Maceió-AL, ${new Date(data.submittedAt).toLocaleDateString('pt-BR')}
                 onChange={e => setLoginForm({...loginForm, pass: e.target.value})}
               />
             </div>
-            {loginError && <p className="text-red-500 text-xs font-bold text-center bg-red-50 py-2 rounded-lg">Acesso negado.</p>}
-            <button type="submit" className="w-full bg-fintech-dark text-white font-bold py-5 rounded-2xl shadow-lg hover:bg-slate-800 transition-all flex items-center justify-center text-lg mt-4">Entrar no Sistema</button>
+            {loginError && <p className="text-red-500 text-xs font-bold text-center bg-red-50 py-2 rounded-lg">Dados incorretos.</p>}
+            <button type="submit" className="w-full bg-fintech-dark text-white font-bold py-5 rounded-2xl shadow-lg hover:bg-slate-800 transition-all text-lg mt-4">Acessar Painel</button>
           </form>
-          <button onClick={onBack} className="w-full mt-6 text-slate-400 font-bold hover:text-slate-600 transition-colors text-xs uppercase tracking-widest">Voltar para a Home</button>
+          <button onClick={onBack} className="w-full mt-6 text-slate-400 font-bold hover:text-slate-600 transition-colors text-xs uppercase tracking-widest">Sair</button>
         </div>
       </div>
     );
@@ -127,13 +145,13 @@ Maceió-AL, ${new Date(data.submittedAt).toLocaleDateString('pt-BR')}
         <div>
           <div className="flex items-center gap-2 text-fintech-green font-bold text-[10px] uppercase tracking-[0.2em] mb-1">
             <span className={`w-2 h-2 rounded-full ${cloudUrl ? 'bg-fintech-green animate-pulse' : 'bg-orange-400'}`}></span> 
-            {cloudUrl ? 'Sincronizado' : 'Nuvem Desconectada'}
+            {cloudUrl ? 'Sincronizado' : 'Offline'}
           </div>
-          <h1 className="text-4xl font-black text-slate-900">Gestão de Clientes</h1>
+          <h1 className="text-4xl font-black text-slate-900">Gestão de Títulos</h1>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => setViewMode('cloud')} className="px-6 py-2 rounded-xl font-bold bg-blue-50 text-blue-600">☁️ Nuvem</button>
-          <button onClick={() => setIsAuthenticated(false)} className="bg-slate-200 text-slate-600 px-6 py-2 rounded-xl font-bold">Sair</button>
+          <button onClick={() => setViewMode('cloud')} className="px-6 py-2 rounded-xl font-bold bg-blue-50 text-blue-600">Configurações</button>
+          <button onClick={() => setIsAuthenticated(false)} className="bg-slate-200 text-slate-600 px-6 py-2 rounded-xl font-bold">Logout</button>
         </div>
       </div>
 
@@ -141,20 +159,20 @@ Maceió-AL, ${new Date(data.submittedAt).toLocaleDateString('pt-BR')}
         <div className="min-h-screen">
           <div className="max-w-4xl mx-auto mb-10 flex flex-wrap gap-4 justify-between items-center print-hide">
             <button onClick={() => setViewMode('list')} className="bg-white px-6 py-3 rounded-xl font-black text-slate-600 shadow-md border border-gray-100 hover:bg-slate-50">
-              ← Voltar à Lista
+              ← Lista de Clientes
             </button>
             <div className="flex gap-4">
-               <button 
+              <button 
                 onClick={() => downloadTxtContract(selectedClient)} 
-                className="bg-slate-800 text-white px-6 py-3 rounded-xl font-black shadow-lg hover:bg-slate-900 transition-all flex items-center gap-2"
+                className="bg-slate-100 text-slate-700 px-6 py-3 rounded-xl font-black hover:bg-slate-200 transition-all flex items-center gap-2"
               >
-                💾 Download (TXT)
+                💾 Baixar Contrato (.txt)
               </button>
               <button 
                 onClick={() => window.print()} 
                 className="bg-fintech-green text-white px-8 py-3 rounded-xl font-black shadow-lg hover:bg-emerald-600 transition-all flex items-center gap-2"
               >
-                🖨️ Imprimir / Salvar PDF
+                🖨️ Imprimir para PDF
               </button>
             </div>
           </div>
@@ -162,34 +180,20 @@ Maceió-AL, ${new Date(data.submittedAt).toLocaleDateString('pt-BR')}
             <Contract data={selectedClient} amount={selectedClient.amount} installments={selectedClient.installments} submissionDate={selectedClient.submittedAt} />
           </div>
         </div>
-      ) : viewMode === 'cloud' ? (
-        <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-gray-100 space-y-8">
-           <div className="flex justify-between items-center">
-             <h2 className="text-2xl font-black text-slate-900">Nuvem Google</h2>
-             <button onClick={() => setViewMode('list')} className="text-slate-400 font-bold uppercase text-xs tracking-widest">Fechar</button>
-          </div>
-          <div className="p-6 bg-slate-50 rounded-3xl border border-slate-200">
-            <label className="block text-xs font-black text-slate-400 uppercase mb-2 tracking-widest">URL do WebApp</label>
-            <div className="flex gap-2">
-              <input type="text" className="flex-grow px-5 py-4 rounded-2xl border border-gray-200" value={cloudUrl} onChange={e => setCloudUrl(e.target.value)} />
-              <button onClick={saveCloudUrl} className="bg-blue-600 text-white px-6 py-4 rounded-2xl font-black">Salvar</button>
-            </div>
-          </div>
-        </div>
       ) : (
         <div className="bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden">
           <div className="p-8 border-b border-gray-100 bg-slate-50 flex justify-between items-center">
-            <h3 className="font-bold text-slate-800 text-xl">Propostas ({allProposals.length})</h3>
-            <button onClick={fetchFromCloud} className="text-xs font-black bg-blue-100 text-blue-700 px-4 py-2 rounded-full">🔄 Atualizar</button>
+            <h3 className="font-bold text-slate-800 text-xl">Solicitações Recebidas ({allProposals.length})</h3>
+            <button onClick={fetchFromCloud} className="text-xs font-black bg-blue-100 text-blue-700 px-4 py-2 rounded-full">Atualizar Nuvem</button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
                   <th className="px-8 py-5">Data</th>
-                  <th className="px-8 py-5">Devedor</th>
+                  <th className="px-8 py-5">Cliente</th>
                   <th className="px-8 py-5">CPF</th>
-                  <th className="px-8 py-5">Total</th>
+                  <th className="px-8 py-5">Valor</th>
                   <th className="px-8 py-5 text-right">Ação</th>
                 </tr>
               </thead>
@@ -199,12 +203,17 @@ Maceió-AL, ${new Date(data.submittedAt).toLocaleDateString('pt-BR')}
                     <td className="px-8 py-5 text-sm text-slate-500">{formatDate(p.submittedAt)}</td>
                     <td className="px-8 py-5 font-bold text-slate-800 uppercase text-xs">{p.nome}</td>
                     <td className="px-8 py-5 text-sm font-mono text-slate-600">{p.cpf}</td>
-                    <td className="px-8 py-5 font-black text-fintech-green">{formatCurrency(p.totalAmount || (p.amount * 1.2))}</td>
+                    <td className="px-8 py-5 font-black text-fintech-green">{formatCurrency(p.totalAmount)}</td>
                     <td className="px-8 py-5 text-right">
-                      <button onClick={() => { setSelectedClient(p); setViewMode('contract'); }} className="text-white bg-fintech-dark px-6 py-2 rounded-xl font-bold text-[10px] uppercase opacity-0 group-hover:opacity-100 transition-all">Ver Contrato</button>
+                      <button onClick={() => { setSelectedClient(p); setViewMode('contract'); }} className="text-white bg-fintech-dark px-6 py-2 rounded-xl font-bold text-[10px] uppercase transition-all shadow-md">Abrir Título</button>
                     </td>
                   </tr>
                 ))}
+                {allProposals.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-20 text-center text-slate-400 font-medium">Nenhuma proposta encontrada.</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

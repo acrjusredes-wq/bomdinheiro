@@ -2,34 +2,34 @@
 import { GoogleGenAI } from "@google/genai";
 
 export const getGeminiResponse = async (userMessage: string) => {
-  // Inicialização obrigatória com process.env.API_KEY
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
   try {
-    // Uso do modelo gemini-3-flash-preview conforme instruído para tarefas básicas
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: [{ parts: [{ text: userMessage }] }],
+      contents: userMessage,
       config: {
-        systemInstruction: `Você é o assistente virtual da Afactoring, uma fintech brasileira de microcrédito. 
-        Seu objetivo é ajudar clientes a entenderem como funciona o empréstimo, tirar dúvidas sobre taxas (20% ao mês) 
-        e prazos (1 a 5 parcelas). Seja profissional, amigável, direto e transmita segurança. 
-        Lembre-se: o valor máximo é R$500 e o mínimo R$100. Pagamentos via PIX. 
-        Responda sempre em Português do Brasil de forma concisa.`,
-        temperature: 0.8,
-        topP: 0.95,
-        topK: 40
+        systemInstruction: `Você é o assistente virtual oficial da Afactoring (propriedade do Dr. Kenneth Amorim). 
+        Sua função é tirar dúvidas de clientes brasileiros sobre microcrédito.
+        REGRAS:
+        - Valores: R$ 100 a R$ 500.
+        - Taxa: 20% fixa ao mês.
+        - Parcelas: 1 a 5 vezes.
+        - Liberação: Via PIX após aprovação.
+        - Documentos: RG/CNH e Selfie são obrigatórios.
+        - Tom: Profissional, confiável e prestativo.
+        - Responda de forma curta e objetiva.`,
+        temperature: 0.7,
       },
     });
 
-    // .text é uma propriedade getter, não um método.
     if (!response || !response.text) {
-      throw new Error("Resposta vazia da API");
+      return "Estou com dificuldade de processar sua mensagem agora. Por favor, tente novamente em instantes.";
     }
 
     return response.text;
   } catch (error) {
-    console.error("Gemini API Error details:", error);
-    return "Olá! Tive um pequeno problema técnico ao processar sua dúvida. Você pode tentar novamente ou falar conosco via WhatsApp pelo botão no rodapé da página.";
+    console.error("Erro na API Gemini:", error);
+    return "Olá! No momento nosso sistema de IA está em manutenção. Você pode falar diretamente com nossa equipe via WhatsApp pelo ícone no canto inferior.";
   }
 };
