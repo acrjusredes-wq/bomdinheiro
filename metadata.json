@@ -1,0 +1,7 @@
+{
+  "name": "Afactoring - Microcrédito Inteligente",
+  "description": "Uma plataforma de microcrédito moderna, segura e transparente para brasileiros, com simulação instantânea e proposta digital.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
