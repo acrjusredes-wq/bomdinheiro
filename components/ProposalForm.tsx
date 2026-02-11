@@ -1,7 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { WORK_SITUATIONS, RELATIONSHIPS } from '../constants';
 import { FormStep, ProposalFormData } from '../types';
+// PASSO 1: Importar o cliente do Supabase
+import { createClient } from '@supabase/supabase-js';
+
+// PASSO 2: Configurar a conexão com as chaves da Vercel
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 interface ProposalFormProps {
   initialAmount: number;
@@ -15,7 +22,6 @@ const ProposalForm: React.FC<ProposalFormProps> = ({ initialAmount, initialInsta
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState('');
   
-  // Form State
   const [formData, setFormData] = useState<ProposalFormData>({
     nome: '', nacionalidade: 'Brasileiro(a)', estadoCivil: 'Solteiro(a)', profissao: '', rg: '', orgaoEmissor: 'SSP',
     cpf: '', birthDate: '', whatsapp: '', email: '',
@@ -30,7 +36,6 @@ const ProposalForm: React.FC<ProposalFormProps> = ({ initialAmount, initialInsta
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // CEP Integration reinforced
   const fetchAddress = async (cepValue: string) => {
     const cleanCep = cepValue.replace(/\D/g, '');
     if (cleanCep.length !== 8) return;
@@ -61,7 +66,6 @@ const ProposalForm: React.FC<ProposalFormProps> = ({ initialAmount, initialInsta
     }
   };
 
-  // Trigger search when CEP is complete
   useEffect(() => {
     const cleanCep = formData.cep.replace(/\D/g, '');
     if (cleanCep.length === 8) {
@@ -69,7 +73,8 @@ const ProposalForm: React.FC<ProposalFormProps> = ({ initialAmount, initialInsta
     }
   }, [formData.cep]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // PASSO 3: Modificar a função handleSubmit para salvar no banco
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (step === FormStep.PERSONAL_INFO) setStep(FormStep.ADDRESS);
     else if (step === FormStep.ADDRESS) setStep(FormStep.FINANCIAL);
@@ -77,10 +82,33 @@ const ProposalForm: React.FC<ProposalFormProps> = ({ initialAmount, initialInsta
     else if (step === FormStep.DOCUMENTS) setStep(FormStep.REFERENCES);
     else if (step === FormStep.REFERENCES) {
       setLoading(true);
-      setTimeout(() => {
-        setLoading(false);
+      
+      try {
+        // Envia os dados para a tabela 'propostas' do Supabase
+        const { error } = await supabase
+          .from('propostas')
+          .insert([
+            { 
+              nome_completo: formData.nome, 
+              cpf: formData.cpf, 
+              data_nascimento: formData.birthDate,
+              valor_solicitado: initialAmount,
+              status: 'Pendente'
+              // Você pode adicionar mais campos aqui conforme a sua tabela crescer
+            }
+          ]);
+
+        if (error) throw error;
+
+        // Se deu certo, executa a função original de sucesso do site
         onSuccess(formData);
-      }, 2000);
+        
+      } catch (err) {
+        console.error("Erro ao salvar proposta:", err);
+        alert("Erro ao enviar sua proposta para a nuvem. Tente novamente.");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
