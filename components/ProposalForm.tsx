@@ -13,6 +13,7 @@ const ProposalForm: React.FC<ProposalFormProps> = ({ initialAmount, initialInsta
   const [step, setStep] = useState<FormStep>(FormStep.PERSONAL_INFO);
   const [loading, setLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
+  const [cepError, setCepError] = useState('');
   
   // Form State
   const [formData, setFormData] = useState<ProposalFormData>({
@@ -29,32 +30,43 @@ const ProposalForm: React.FC<ProposalFormProps> = ({ initialAmount, initialInsta
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // CEP Integration
-  useEffect(() => {
-    const fetchAddress = async () => {
-      const cleanCep = formData.cep.replace(/\D/g, '');
-      if (cleanCep.length === 8) {
-        setCepLoading(true);
-        try {
-          const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-          const data = await response.json();
-          if (!data.erro) {
-            setFormData(prev => ({
-              ...prev,
-              rua: data.logradouro || '',
-              bairro: data.bairro || '',
-              cidade: data.localidade || '',
-              estado: data.uf || ''
-            }));
-          }
-        } catch (error) {
-          console.error("Erro ao buscar CEP:", error);
-        } finally {
-          setCepLoading(false);
-        }
+  // CEP Integration reinforced
+  const fetchAddress = async (cepValue: string) => {
+    const cleanCep = cepValue.replace(/\D/g, '');
+    if (cleanCep.length !== 8) return;
+
+    setCepLoading(true);
+    setCepError('');
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      if (!response.ok) throw new Error('Falha na rede');
+      const data = await response.json();
+      
+      if (data.erro) {
+        setCepError('CEP não encontrado.');
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          rua: data.logradouro || '',
+          bairro: data.bairro || '',
+          cidade: data.localidade || '',
+          estado: data.uf || ''
+        }));
       }
-    };
-    fetchAddress();
+    } catch (error) {
+      console.error("Erro ao buscar CEP:", error);
+      setCepError('Erro ao buscar CEP online.');
+    } finally {
+      setCepLoading(false);
+    }
+  };
+
+  // Trigger search when CEP is complete
+  useEffect(() => {
+    const cleanCep = formData.cep.replace(/\D/g, '');
+    if (cleanCep.length === 8) {
+      fetchAddress(cleanCep);
+    }
   }, [formData.cep]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -185,8 +197,20 @@ const ProposalForm: React.FC<ProposalFormProps> = ({ initialAmount, initialInsta
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-1 relative">
                 <label className="block text-sm font-bold text-slate-700 mb-1">CEP</label>
-                <input required type="text" name="cep" value={formData.cep} onChange={handleInputChange} className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="00000-000" />
-                {cepLoading && <div className="absolute right-3 bottom-4"><div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>}
+                <div className="relative">
+                  <input 
+                    required 
+                    type="text" 
+                    name="cep" 
+                    maxLength={9}
+                    value={formData.cep} 
+                    onChange={handleInputChange} 
+                    className={`w-full px-5 py-3.5 rounded-2xl bg-slate-50 border ${cepError ? 'border-red-300' : 'border-gray-200'} focus:ring-2 focus:ring-emerald-500 outline-none`} 
+                    placeholder="00000-000" 
+                  />
+                  {cepLoading && <div className="absolute right-3 top-1/2 -translate-y-1/2"><div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>}
+                </div>
+                {cepError && <span className="text-[10px] text-red-500 font-bold ml-1">{cepError}</span>}
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-bold text-slate-700 mb-1">Rua / Logradouro</label>

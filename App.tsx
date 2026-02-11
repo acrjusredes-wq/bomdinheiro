@@ -175,7 +175,9 @@ Este contrato é um TÍTULO EXECUTIVO EXTRAJUDICIAL gerado digitalmente em ${dat
                 <div className="space-y-6">
                   <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-2">✓</div>
                   <h1 className="text-3xl font-black text-slate-900 leading-tight uppercase">proposta enviada</h1>
-                  <p className="text-slate-600 text-lg font-medium">Sua proposta foi processada. Acompanhe na <strong>Área do Cliente</strong> usando seu CPF.</p>
+                  <p className="text-slate-600 text-lg font-medium">
+                    Sua proposta foi enviado, gostaríamos de informá-los que o prazo para análise dos documentos e envio do contrato para assinatura do cliente é de até 48 horas uteis.
+                  </p>
                   <div className="pt-8">
                     <button onClick={() => setCurrentStep(FormStep.SIMULATION)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-4 rounded-2xl transition-all">Voltar ao Início</button>
                   </div>
