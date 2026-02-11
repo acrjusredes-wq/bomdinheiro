@@ -2,8 +2,16 @@
 import { GoogleGenAI } from "@google/genai";
 
 export const getGeminiResponse = async (userMessage: string) => {
+  // Verificação defensiva para evitar que a aplicação quebre se a chave estiver ausente
+  const apiKey = process.env.API_KEY || "";
+  
+  if (!apiKey) {
+    console.warn("Aviso: Chave de API do Gemini não configurada.");
+    return "Olá! Sou o assistente da Afactoring. No momento estou operando em modo offline, mas você pode tirar dúvidas sobre nossos valores (R$100 a R$500) e taxas (20% ao mês) lendo nosso FAQ ou falando conosco pelo WhatsApp!";
+  }
+
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey });
     
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -18,18 +26,18 @@ export const getGeminiResponse = async (userMessage: string) => {
         - Liberação: Via PIX após aprovação.
         - Documentos: RG/CNH e Selfie são obrigatórios.
         - Tom: Profissional, confiável e prestativo.
-        - Responda de forma curta e objetiva.`,
+        - Responda sempre em Português do Brasil de forma curta e objetiva.`,
         temperature: 0.7,
       },
     });
 
     if (!response || !response.text) {
-      return "Estou com dificuldade de processar sua mensagem agora. Por favor, tente novamente em instantes.";
+      return "Não consegui processar sua mensagem agora. Pode tentar reformular a pergunta?";
     }
 
     return response.text;
   } catch (error) {
     console.error("Erro na API Gemini:", error);
-    return "Olá! No momento nosso sistema de IA está em manutenção. Você pode falar diretamente com nossa equipe via WhatsApp pelo ícone no canto inferior.";
+    return "Olá! Tive um pequeno problema de conexão com minha inteligência artificial. Para sua segurança, você pode falar diretamente com nosso suporte via WhatsApp no botão abaixo.";
   }
 };
