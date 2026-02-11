@@ -10,7 +10,7 @@ import Footer from './components/Footer';
 import ChatBot from './components/ChatBot';
 import ClientArea from './components/ClientArea';
 import AdminArea from './components/AdminArea';
-import { FormStep, ProposalFormData, SavedProposal } from './types';
+import { FormStep, ProposalFormData, SavedProposal, ProposalStatus } from './types';
 import { formatCurrency, numberToWords, generateInstallmentDates } from './utils/formatters';
 
 const App: React.FC = () => {
@@ -30,6 +30,23 @@ const App: React.FC = () => {
     }
   }, []);
 
+  const saveProposals = (newProposals: SavedProposal[]) => {
+    setProposals(newProposals);
+    localStorage.setItem('afactoring_proposals', JSON.stringify(newProposals));
+  };
+
+  const updateProposalStatus = (id: string, newStatus: ProposalStatus) => {
+    const updated = proposals.map(p => p.id === id ? { ...p, status: newStatus } : p);
+    saveProposals(updated);
+  };
+
+  const deleteProposal = (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir permanentemente este cliente e todos os seus dados?')) {
+      const updated = proposals.filter(p => p.id !== id);
+      saveProposals(updated);
+    }
+  };
+
   const startRequest = (amount: number, installments: number) => {
     setLoanData({ amount, installments });
     setCurrentStep(FormStep.PERSONAL_INFO);
@@ -44,33 +61,6 @@ const App: React.FC = () => {
   const navigateToAdminArea = () => {
     setCurrentStep(FormStep.ADMIN_AREA);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const formatContractForEmail = (data: SavedProposal) => {
-    const date = new Date(data.submittedAt).toLocaleDateString('pt-BR');
-    const vencimentos = data.installmentDates.map((d, i) => `Parcela ${i+1}: ${d}`).join('\n');
-
-    return `
-INSTRUMENTO PARTICULAR DE CONFISSÃO DE DÍVIDA E TERMO DE ACORDO
-
-CREDOR: KENNETH DEUBER ALMEIDA DE AMORIM, OAB/AL 18.523, CPF 045.556.404-38.
-
-DEVEDOR: ${data.nome}
-CPF: ${data.cpf}
-RG: ${data.rg} - ${data.orgaoEmissor}
-ENDEREÇO: ${data.rua}, ${data.numero}, ${data.bairro}, ${data.cidade}/${data.estado}
-WHATSAPP: ${data.whatsapp}
-CHAVE PIX: ${data.pix}
-
-CONFISSÃO: O devedor confessa a dívida líquida e certa de ${formatCurrency(data.totalAmount)} (${numberToWords(data.totalAmount)}).
-
-PAGAMENTO: O(s) DEVEDOR(es) compromete(m)-se a pagar o débito no valor total de ${formatCurrency(data.totalAmount)} em ${data.installments} parcelas mensais e sucessivas de ${formatCurrency(data.installmentValue)}.
-
-CRONOGRAMA DE VENCIMENTOS:
-${vencimentos}
-
-Este contrato é um TÍTULO EXECUTIVO EXTRAJUDICIAL gerado digitalmente em ${date}.
-    `;
   };
 
   const handleSuccess = async (data: ProposalFormData) => {
@@ -91,39 +81,22 @@ Este contrato é um TÍTULO EXECUTIVO EXTRAJUDICIAL gerado digitalmente em ${dat
       installments: loanData.installments,
       totalAmount,
       installmentValue,
-      installmentDates
+      installmentDates,
+      status: 'pending'
     };
 
-    // 1. Salva Local
     const updatedProposals = [newProposal, ...proposals];
-    setProposals(updatedProposals);
-    localStorage.setItem('afactoring_proposals', JSON.stringify(updatedProposals));
+    saveProposals(updatedProposals);
 
-    // 2. Envia para a Nuvem
-    const cloudUrl = localStorage.getItem('afactoring_cloud_url');
-    if (cloudUrl) {
-      try {
-        await fetch(cloudUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newProposal)
-        });
-      } catch (e) {
-        console.error("Erro Nuvem:", e);
-      }
-    }
-
-    // 3. Envia E-mail (Kenneth)
+    // Envia E-mail (Kenneth)
     try {
-      const contractBody = formatContractForEmail(newProposal);
       await fetch('https://formspree.io/f/xeoqgjba', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: "Kenneth.amorimadv@gmail.com",
-          _subject: `NOVO CLIENTE: ${newProposal.nome} (${formatCurrency(newProposal.totalAmount)})`,
-          message: contractBody
+          _subject: `NOVA PROPOSTA: ${newProposal.nome} (${formatCurrency(newProposal.totalAmount)})`,
+          message: `Nova proposta recebida de ${newProposal.nome}. Status inicial: Pendente.`
         })
       });
     } catch (error) {
@@ -143,7 +116,6 @@ Este contrato é um TÍTULO EXECUTIVO EXTRAJUDICIAL gerado digitalmente em ${dat
             <Hero onStartRequest={startRequest} />
             <TrustSection />
             <HowItWorks />
-            
             <section className="bg-fintech-dark py-20 px-6">
               <div className="max-w-4xl mx-auto text-center">
                 <h2 className="text-3xl md:text-5xl font-black text-white mb-6 uppercase tracking-tight">
@@ -162,14 +134,19 @@ Este contrato é um TÍTULO EXECUTIVO EXTRAJUDICIAL gerado digitalmente em ${dat
         ) : currentStep === FormStep.CLIENT_AREA ? (
           <ClientArea />
         ) : currentStep === FormStep.ADMIN_AREA ? (
-          <AdminArea proposals={proposals} onBack={() => setCurrentStep(FormStep.SIMULATION)} />
+          <AdminArea 
+            proposals={proposals} 
+            onBack={() => setCurrentStep(FormStep.SIMULATION)}
+            onUpdateStatus={updateProposalStatus}
+            onDelete={deleteProposal}
+          />
         ) : currentStep === FormStep.SUCCESS ? (
           <div className="py-20 px-6 bg-slate-50 min-h-screen flex items-center justify-center">
             <div className="max-w-xl w-full bg-white rounded-[2rem] shadow-2xl p-8 md:p-12 text-center animate-fadeIn border border-gray-100">
               {isSubmitting ? (
                 <div className="space-y-6 py-10">
                   <div className="w-16 h-16 border-4 border-fintech-green border-t-transparent rounded-full animate-spin mx-auto"></div>
-                  <p className="text-slate-600 font-bold text-lg">Sincronizando contrato...</p>
+                  <p className="text-slate-600 font-bold text-lg">Sincronizando proposta...</p>
                 </div>
               ) : (
                 <div className="space-y-6">

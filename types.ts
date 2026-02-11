@@ -6,6 +6,8 @@ export interface LoanOption {
   };
 }
 
+export type ProposalStatus = 'pending' | 'approved' | 'rejected';
+
 export interface ProposalFormData {
   nome: string;
   nacionalidade: string;
@@ -43,6 +45,7 @@ export interface SavedProposal extends ProposalFormData {
   totalAmount: number;
   installmentValue: number;
   installmentDates: string[];
+  status: ProposalStatus;
 }
 
 export enum FormStep {
