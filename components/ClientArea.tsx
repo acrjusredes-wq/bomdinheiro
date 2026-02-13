@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// Conexão direta com o Supabase
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -18,11 +17,8 @@ const ClientArea: React.FC = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       const cleanInputCpf = loginData.cpf.replace(/\D/g, '');
-
-      // Busca no banco de dados
       const { data, error: dbError } = await supabase
         .from('propostas')
         .select('*')
@@ -30,15 +26,14 @@ const ClientArea: React.FC = () => {
         .eq('data_nascimento', loginData.birthDate);
 
       if (dbError) throw dbError;
-
       if (data && data.length > 0) {
         setUserProposals(data);
         setIsLogged(true);
       } else {
-        setError('Nenhuma proposta encontrada. Verifique seu CPF e Data de Nascimento.');
+        setError('Nenhuma proposta encontrada.');
       }
     } catch (err) {
-      setError('Erro ao acessar o sistema. Tente novamente.');
+      setError('Erro ao acessar o sistema.');
     } finally {
       setLoading(false);
     }
@@ -46,51 +41,43 @@ const ClientArea: React.FC = () => {
 
   if (!isLogged) {
     return (
-      <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px', fontFamily: 'sans-serif' }}>
-        <h2 style={{ textAlign: 'center' }}>Área do Cliente</h2>
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ padding: '20px', maxWidth: '400px', margin: 'auto' }}>
+        <h2>Acesso do Cliente</h2>
+        <form onSubmit={handleLogin}>
           <input 
-            required 
-            placeholder="Seu CPF" 
-            style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ccc' }}
+            placeholder="CPF" 
+            style={{ display: 'block', width: '100%', marginBottom: '10px', padding: '10px' }} 
             value={loginData.cpf} 
             onChange={e => setLoginData({...loginData, cpf: e.target.value})} 
           />
           <input 
-            required 
             type="date" 
-            style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ccc' }}
+            style={{ display: 'block', width: '100%', marginBottom: '10px', padding: '10px' }} 
             value={loginData.birthDate} 
             onChange={e => setLoginData({...loginData, birthDate: e.target.value})} 
           />
-          {error && <p style={{ color: 'red', fontSize: '12px' }}>{error}</p>}
-          <button 
-            type="submit" 
-            disabled={loading}
-            style={{ padding: '12px', backgroundColor: '#000', color: '#fff', borderRadius: '8px', cursor: 'pointer' }}
-          >
-            {loading ? 'Entrando...' : 'Acessar Meu Painel'}
+          <button type="submit" disabled={loading} style={{ width: '100%', padding: '10px', backgroundColor: 'black', color: 'white' }}>
+            {loading ? 'Entrando...' : 'Entrar'}
           </button>
+          {error && <p style={{ color: 'red' }}>{error}</p>}
         </form>
       </div>
     );
   }
 
-  const latest = userProposals[0];
-
   return (
-    <div style={{ maxWidth: '800px', margin: '20px auto', padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1>Olá, {latest.nome_completo}!</h1>
-      <div style={{ padding: '20px', backgroundColor: '#f0fdf4', borderRadius: '15px', border: '1px solid #bbf7d0' }}>
-        <p><strong>Status:</strong> {latest.status || 'Em Análise'}</p>
-        <p><strong>Valor:</strong> R$ {latest.valor_solicitado}</p>
+    <div style={{ padding: '20px', maxWidth: '600px', margin: 'auto' }}>
+      <h1>Olá, {userProposals[0].nome_completo}</h1>
+      <div style={{ border: '1px solid #ccc', padding: '15px', borderRadius: '10px' }}>
+        <p><strong>Status:</strong> {userProposals[0].status}</p>
+        <p><strong>Valor:</strong> R$ {userProposals[0].valor_solicitado}</p>
+        <hr />
+        <h4>Sua Confissão de Dívida:</h4>
+        <div style={{ whiteSpace: 'pre-wrap', fontSize: '12px', background: '#f9f9f9', padding: '10px' }}>
+          {userProposals[0].confissao_texto || 'Aguardando processamento...'}
+        </div>
       </div>
-      <h3 style={{ marginTop: '30px' }}>Sua Confissão de Dívida:</h3>
-      <div style={{ padding: '20px', backgroundColor: '#f8fafc', borderRadius: '15px', border: '1px solid #e2e8f0', whiteSpace: 'pre-wrap' }}>
-        {latest.confissao_texto || "Documento não disponível."}
-      </div>
-      <button onClick={() => window.print()} style={{ marginTop: '20px', cursor: 'pointer' }}>Imprimir</button>
-      <button onClick={() => setIsLogged(false)} style={{ marginLeft: '10px', cursor: 'pointer' }}>Sair</button>
+      <button onClick={() => setIsLogged(false)} style={{ marginTop: '20px' }}>Sair</button>
     </div>
   );
 };
